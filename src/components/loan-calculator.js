@@ -1,133 +1,389 @@
 import React, { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
+} from 'recharts';
+
 const styles = {
-    container: {
-      maxWidth: '1000px',
-      margin: '0 auto',
-      padding: '20px',
-      fontFamily: 'Arial, sans-serif',
-    },
-    card: {
-      backgroundColor: 'white',
-      borderRadius: '8px',
-      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-      padding: '20px',
-      marginBottom: '20px',
-    },
-    title: {
-      fontSize: '24px',
-      fontWeight: 'bold',
-      marginBottom: '16px',
-    },
-    subtitle: {
-      fontSize: '18px',
-      fontWeight: 'bold',
-      marginBottom: '12px',
-    },
-    description: {
-      marginBottom: '16px',
-      lineHeight: '1.5',
-    },
-    grid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-      gap: '16px',
-    },
-    inputGroup: {
-      marginBottom: '16px',
-    },
-    label: {
-      display: 'block',
-      marginBottom: '8px',
-      fontWeight: 'bold',
-    },
-    input: {
-      width: '100%',
-      padding: '8px',
-      border: '1px solid #ccc',
-      borderRadius: '4px',
-    },
-    readOnlyInput: {
-      backgroundColor: '#f0f0f0',
-    },
-    smallText: {
-      fontSize: '14px',
-      color: '#666',
-      marginTop: '4px',
-    },
-    table: {
-      width: '100%',
-      borderCollapse: 'collapse',
-    },
-    th: {
-      backgroundColor: '#f0f0f0',
-      textAlign: 'left',
-      padding: '12px',
-      borderBottom: '2px solid #ddd',
-    },
-    td: {
-      padding: '12px',
-      borderBottom: '1px solid #ddd',
-    },
-  };
-  const LoanPaymentCalculator = () => {
-    const [loanAmount, setLoanAmount] = useState();
-    const [interestRate, setInterestRate] = useState();
-    const [minimumPayment, setMinimumPayment] = useState();
-    const [loanDuration, setLoanDuration] = useState();
-    const [autoMaxPayment, setAutoMaxPayment] = useState(0);
-    const [customMaxPayment, setCustomMaxPayment] = useState(0);
-    const [paymentSchedule, setPaymentSchedule] = useState([]);
-  
-    useEffect(() => {
+  container: {
+    maxWidth: '1200px',
+    margin: '0 auto',
+    padding: '20px'
+  },
+  card: {
+    backgroundColor: '#fff',
+    padding: '20px',
+    marginBottom: '20px',
+    borderRadius: '8px',
+    boxShadow:
+      '0 4px 6px rgba(0, 0, 0, 0.1)'
+  },
+  title: {
+    marginBottom: '10px',
+    fontSize: '24px'
+  },
+  subtitle: {
+    marginBottom: '10px',
+    fontSize: '20px'
+  },
+  description: {
+    marginBottom: '20px'
+  },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns:
+      'repeat(auto-fit, minmax(250px, 1fr))',
+    gap: '20px'
+  },
+  inputGroup: {
+    display: 'flex',
+    flexDirection: 'column'
+  },
+  label: {
+    marginBottom: '5px'
+  },
+  input: {
+    padding: '10px',
+    fontSize: '16px'
+  },
+  readOnlyInput: {
+    backgroundColor: '#f5f5f5',
+    cursor: 'not-allowed'
+  },
+  smallText: {
+    fontSize: '12px',
+    color: '#666',
+    marginTop: '5px'
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse'
+  },
+  th: {
+    padding: '10px',
+    backgroundColor: '#f5f5f5',
+    border: '1px solid #ddd'
+  },
+  td: {
+    padding: '10px',
+    border: '1px solid #ddd',
+    textAlign: 'center'
+  }
+};
+
+const LoanPaymentCalculator = () => {
+  // State declarations
+  const [loanAmount, setLoanAmount] = useState();
+  const [interestRate, setInterestRate] = useState();
+  const [originalLoanDuration, setOriginalLoanDuration] = useState();
+  const [desiredLoanDuration, setDesiredLoanDuration] = useState();
+  const [minimumPayment, setMinimumPayment] = useState(0);
+  const [autoMinPayment, setAutoMinPayment] = useState(0);
+  const [autoMaxPayment, setAutoMaxPayment] = useState(0);
+  const [customMaxPaymentInput, setCustomMaxPaymentInput] = useState('');
+  const [customMaxPayment, setCustomMaxPayment] = useState(0);
+  const [paymentSchedule, setPaymentSchedule] = useState([]);
+  const [customMaxPaymentMonths, setCustomMaxPaymentMonths] = useState(0);
+  const [adjustedMedianPayment, setAdjustedMedianPayment] = useState(0);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  useEffect(() => {
+    if (
+      loanAmount > 0 &&
+      interestRate >= 0 &&
+      originalLoanDuration > 0
+    ) {
+      calculateMinimumPayment();
+    } else {
+      setMinimumPayment(0);
+    }
+  }, [loanAmount, interestRate, originalLoanDuration]);
+
+  useEffect(() => {
+    if (
+      loanAmount > 0 &&
+      interestRate >= 0 &&
+      desiredLoanDuration > 0
+    ) {
+      calculateAutoMinPayment();
+    } else {
+      setAutoMinPayment(0);
+    }
+  }, [loanAmount, interestRate, desiredLoanDuration]);
+
+  useEffect(() => {
+    if (
+      loanAmount > 0 &&
+      interestRate >= 0 &&
+      desiredLoanDuration > 0 &&
+      minimumPayment > 0
+    ) {
       calculateAutoMaxPayment();
-    }, [loanAmount, interestRate, loanDuration, minimumPayment]);
-  
-    useEffect(() => {
+    } else {
+      setAutoMaxPayment(0);
+    }
+  }, [loanAmount, interestRate, desiredLoanDuration, minimumPayment]);
+
+  useEffect(() => {
+    if (
+      loanAmount > 0 &&
+      interestRate >= 0 &&
+      minimumPayment > 0 &&
+      desiredLoanDuration > 0 &&
+      (autoMaxPayment > 0 || customMaxPayment > 0)
+    ) {
       calculatePayments();
-    }, [loanAmount, interestRate, minimumPayment, loanDuration, autoMaxPayment, customMaxPayment]);
-  
+    } else {
+      setPaymentSchedule([]);
+    }
+  }, [
+    loanAmount,
+    interestRate,
+    minimumPayment,
+    desiredLoanDuration,
+    autoMaxPayment,
+    customMaxPayment
+  ]);
+
+  const calculateMinimumPayment = () => {
+    const monthlyRate = interestRate / 100 / 12;
+    const n = originalLoanDuration;
+
+    if (monthlyRate === 0) {
+      // No interest scenario
+      const payment = loanAmount / n;
+      setMinimumPayment(Number(payment.toFixed(2)));
+      return;
+    }
+
+    // Loan amortization formula
+    const payment =
+      loanAmount *
+      (monthlyRate * Math.pow(1 + monthlyRate, n)) /
+      (Math.pow(1 + monthlyRate, n) - 1);
+
+    setMinimumPayment(Number(payment.toFixed(2)));
+  };
+
+  const calculateAutoMinPayment = () => {
+    const monthlyRate = interestRate / 100 / 12;
+    const n = desiredLoanDuration;
+
+    if (monthlyRate === 0) {
+      // No interest scenario
+      const payment = loanAmount / n;
+      setAutoMinPayment(Number(payment.toFixed(2)));
+      return;
+    }
+
+    // Loan amortization formula
+    const payment =
+      loanAmount *
+      (monthlyRate * Math.pow(1 + monthlyRate, n)) /
+      (Math.pow(1 + monthlyRate, n) - 1);
+
+    setAutoMinPayment(Number(payment.toFixed(2)));
+  };
+
   const calculateAutoMaxPayment = () => {
     const monthlyRate = interestRate / 100 / 12;
-    const remainingMonths = loanDuration - 1;
-    const balanceAfterInitialMax = loanAmount * (1 + monthlyRate) - minimumPayment * remainingMonths;
-    const autoMax = Math.max(minimumPayment, balanceAfterInitialMax);
+    const remainingMonths = desiredLoanDuration - 1;
+
+    if (monthlyRate === 0) {
+      // No interest scenario
+      const autoMax = loanAmount - minimumPayment * remainingMonths;
+      setAutoMaxPayment(Number(autoMax.toFixed(2)));
+      return;
+    }
+
+    // Present Value of an Annuity formula
+    const pvAnnuity =
+      minimumPayment *
+      ((1 - Math.pow(1 + monthlyRate, -remainingMonths)) / monthlyRate);
+
+    // Remaining balance after the first payment
+    const autoMax = loanAmount * (1 + monthlyRate) - pvAnnuity;
+
     setAutoMaxPayment(Number(autoMax.toFixed(2)));
   };
 
   const calculatePayments = () => {
-    const maxPayment = customMaxPayment > 0 ? customMaxPayment : autoMaxPayment;
-    const schedule = calculatePaymentScheduleWithAdjustedFinalMax(
-      loanAmount,
-      interestRate,
-      loanDuration,
-      minimumPayment,
-      maxPayment
-    );
+    let schedule = [];
+    setErrorMessage(''); // Reset error message
+    if (customMaxPayment > 0) {
+      const result = calculateCustomMaxPaymentSchedule();
+      schedule = result.schedule;
+      setAdjustedMedianPayment(result.adjustedMedianPayment);
+      setCustomMaxPaymentMonths(result.customMaxPaymentMonths);
+      if (schedule.length === 0) {
+        setErrorMessage(
+          'Unable to create a payment schedule with the provided Custom Max Payment and Desired Loan Duration. Please adjust your inputs.'
+        );
+      }
+    } else {
+      schedule = calculateAutoMaxPaymentSchedule();
+      setAdjustedMedianPayment(0); // Reset adjustedMedianPayment when not using customMaxPayment
+      setCustomMaxPaymentMonths(0); // Reset customMaxPaymentMonths
+    }
     setPaymentSchedule(schedule);
   };
 
+  const calculateAutoMaxPaymentSchedule = () => {
+    return calculatePaymentSchedule(
+      loanAmount,
+      interestRate,
+      desiredLoanDuration,
+      minimumPayment,
+      autoMaxPayment
+    );
+  };
 
-  const calculateSchedule = (loanAmount, interestRate, loanDuration, minimumPayment, customMaxPayment, monthsMaxPayment) => {
-    let balance = loanAmount;
+  const calculateCustomMaxPaymentSchedule = () => {
     const monthlyRate = interestRate / 100 / 12;
+    const desiredDuration = desiredLoanDuration;
+    let maxMonths = desiredDuration - 2; // Reserve at least 1 month for median payment and 1 for minimum payments
     let schedule = [];
+    let adjustedMedianPaymentValue = 0;
+    let foundValidSchedule = false;
 
-    for (let month = 1; month <= loanDuration; month++) {
-      if (balance <= 0) break;
-      const interest = balance * monthlyRate;
-
-      let payment;
-      if (month < monthsMaxPayment) {
-        payment = customMaxPayment;
-      } else if (month === monthsMaxPayment) {
-        payment = balance + interest; // This will be adjusted later
-      } else {
-        payment = Math.min(minimumPayment, balance + interest);
+    while (maxMonths > 0) {
+      // Calculate remaining balance after maxMonths of custom max payments
+      let balance = loanAmount;
+      for (let month = 1; month <= maxMonths; month++) {
+        const interest = balance * monthlyRate;
+        let principal = customMaxPayment - interest;
+        if (principal > balance) {
+          principal = balance;
+          balance = 0;
+          break;
+        } else {
+          balance -= principal;
+        }
       }
 
-      const principal = payment - interest;
-      balance = Math.max(0, balance - principal);
+      // Calculate adjusted median payment
+      const remainingMonths = desiredDuration - maxMonths - 1;
+      if (remainingMonths < 0) {
+        maxMonths--;
+        continue;
+      }
+
+      // Present Value of remaining minimum payments
+      const pvAnnuity =
+        minimumPayment *
+        ((1 - Math.pow(1 + monthlyRate, -remainingMonths)) / monthlyRate);
+
+      // Adjusted median payment calculation
+      adjustedMedianPaymentValue =
+        balance * (1 + monthlyRate) - pvAnnuity;
+
+      if (adjustedMedianPaymentValue <= customMaxPayment && adjustedMedianPaymentValue > 0) {
+        // Generate full payment schedule
+        schedule = generatePaymentSchedule(
+          loanAmount,
+          interestRate,
+          desiredDuration,
+          minimumPayment,
+          customMaxPayment,
+          maxMonths,
+          adjustedMedianPaymentValue
+        );
+
+        // Validate the schedule
+        const totalPayments = schedule.length;
+        const lastPayment = schedule[schedule.length - 1];
+
+        if (
+          totalPayments === desiredDuration &&
+          lastPayment.payment >= 0 &&
+          lastPayment.payment <= minimumPayment
+        ) {
+          foundValidSchedule = true;
+          break;
+        }
+      }
+
+      maxMonths--;
+    }
+
+    if (!foundValidSchedule) {
+      return { schedule: [], adjustedMedianPayment: 0, customMaxPaymentMonths: 0 };
+    }
+
+    return {
+      schedule,
+      adjustedMedianPayment: adjustedMedianPaymentValue,
+      customMaxPaymentMonths: maxMonths
+    };
+  };
+
+  const generatePaymentSchedule = (
+    loanAmount,
+    interestRate,
+    desiredDuration,
+    minimumPayment,
+    customMaxPayment,
+    customMaxMonths,
+    adjustedMedianPaymentValue
+  ) => {
+    const monthlyRate = interestRate / 100 / 12;
+    let balance = loanAmount;
+    const schedule = [];
+
+    // Payments at customMaxPayment
+    for (let month = 1; month <= customMaxMonths; month++) {
+      const interest = balance * monthlyRate;
+      let payment = customMaxPayment;
+      let principal = payment - interest;
+
+      // Adjust payment if it would overpay the balance
+      if (principal > balance) {
+        principal = balance;
+        payment = principal + interest;
+        balance = 0;
+      } else {
+        balance -= principal;
+      }
+
+      schedule.push({
+        month,
+        payment: Number(payment.toFixed(2)),
+        interestPaid: Number(interest.toFixed(2)),
+        principalPaid: Number(principal.toFixed(2)),
+        remainingBalance: Number(balance.toFixed(2))
+      });
+
+      if (balance <= 0) {
+        // Loan is paid off
+        return schedule;
+      }
+    }
+
+    // Median month with adjusted payment
+    if (balance > 0 && customMaxMonths + 1 <= desiredDuration) {
+      const month = customMaxMonths + 1;
+      const interest = balance * monthlyRate;
+      let payment = adjustedMedianPaymentValue;
+      let principal = payment - interest;
+
+      // Check for negative payment
+      if (payment <= 0) {
+        return []; // Invalid schedule
+      }
+
+      if (principal > balance) {
+        principal = balance;
+        payment = principal + interest;
+        balance = 0;
+      } else {
+        balance -= principal;
+      }
 
       schedule.push({
         month,
@@ -138,141 +394,136 @@ const styles = {
       });
     }
 
+    // Payments at minimumPayment
+    for (
+      let month = customMaxMonths + 2;
+      month <= desiredDuration;
+      month++
+    ) {
+      const interest = balance * monthlyRate;
+      let payment = minimumPayment;
+      let principal = payment - interest;
+
+      // Adjust final payment if necessary
+      if (month === desiredDuration) {
+        principal = balance;
+        payment = principal + interest;
+        balance = 0;
+      } else if (principal > balance) {
+        principal = balance;
+        payment = principal + interest;
+        balance = 0;
+      } else {
+        balance -= principal;
+      }
+
+      schedule.push({
+        month,
+        payment: Number(payment.toFixed(2)),
+        interestPaid: Number(interest.toFixed(2)),
+        principalPaid: Number(principal.toFixed(2)),
+        remainingBalance: Number(balance.toFixed(2))
+      });
+
+      if (balance <= 0) {
+        // Loan is paid off
+        return schedule;
+      }
+    }
+
     return schedule;
   };
 
-  const adjustTransitionMonth = (loanAmount, interestRate, loanDuration, minimumPayment, customMaxPayment, monthsMaxPayment) => {
-    let low = minimumPayment;
-    let high = customMaxPayment;
-    let bestSchedule = null;
-    let bestFinalBalance = Infinity;
-    const maxIterations = 20;
-
-    for (let i = 0; i < maxIterations; i++) {
-      const transitionPayment = (low + high) / 2;
-      const schedule = calculateSchedule(loanAmount, interestRate, loanDuration, minimumPayment, customMaxPayment, monthsMaxPayment);
-      schedule[monthsMaxPayment - 1].payment = transitionPayment;
-      
-      let balance = schedule[monthsMaxPayment - 1].remainingBalance;
-      for (let month = monthsMaxPayment; month < loanDuration; month++) {
-        const interest = balance * (interestRate / 100 / 12);
-        const payment = Math.min(minimumPayment, balance + interest);
-        const principal = payment - interest;
-        balance = Math.max(0, balance - principal);
-        
-        schedule[month] = {
-          month: month + 1,
-          payment: Number(payment.toFixed(2)),
-          interestPaid: Number(interest.toFixed(2)),
-          principalPaid: Number(principal.toFixed(2)),
-          remainingBalance: Number(balance.toFixed(2))
-        };
-      }
-
-      const finalBalance = balance;
-
-      if (Math.abs(finalBalance) < Math.abs(bestFinalBalance)) {
-        bestSchedule = schedule;
-        bestFinalBalance = finalBalance;
-      }
-
-      if (Math.abs(finalBalance) < 10) {
-        break;
-      } else if (finalBalance > 0) {
-        low = transitionPayment;
-      } else {
-        high = transitionPayment;
-      }
-    }
-
-    return bestSchedule;
-  };
-  const calculatePaymentScheduleWithAdjustedFinalMax = (
+  const calculatePaymentSchedule = (
     loanAmount,
     interestRate,
-    loanDuration,
+    desiredDuration,
     minimumPayment,
-    customMaxPayment,
-    suggestedMaxPayment
+    initialPayment
   ) => {
     const monthlyRate = interestRate / 100 / 12;
-    const maxPayment = customMaxPayment > 0 ? customMaxPayment : suggestedMaxPayment;
-  
-    const calculateSchedule = (initialPayment) => {
-      let balance = loanAmount;
-      let schedule = [];
-  
-      for (let month = 1; month <= loanDuration; month++) {
-        const interest = balance * monthlyRate;
-        let payment;
-  
-        if (month === 1) {
-          payment = initialPayment;
-        } else if (month === loanDuration) {
-          payment = balance + interest; // Ensure the loan is fully paid off
-        } else {
-          payment = Math.max(minimumPayment, Math.min(balance + interest, initialPayment));
-        }
-  
-        const principal = payment - interest;
-        balance = Math.max(0, balance - principal);
-  
-        schedule.push({
-          month,
-          payment: Number(payment.toFixed(2)),
-          interestPaid: Number(interest.toFixed(2)),
-          principalPaid: Number(principal.toFixed(2)),
-          remainingBalance: Number(balance.toFixed(2))
-        });
-  
-        if (balance === 0 && month === loanDuration) break;
-      }
-  
-      return schedule;
-    };
-  
-    // Binary search to find optimal initial payment
-    let low = minimumPayment;
-    let high = maxPayment;
-    let bestSchedule = null;
-  
-    while (high - low > 0.01) {
-      const mid = (low + high) / 2;
-      const schedule = calculateSchedule(mid);
-      const finalPayment = schedule[schedule.length - 1].payment;
-  
-      if (finalPayment > minimumPayment) {
-        low = mid;
-      } else if (finalPayment < minimumPayment) {
-        if (!bestSchedule || Math.abs(minimumPayment - finalPayment) < Math.abs(minimumPayment - bestSchedule[bestSchedule.length - 1].payment)) {
-          bestSchedule = schedule;
-        }
-        high = mid;
+    let balance = loanAmount;
+    const schedule = [];
+
+    // First payment
+    let interest = balance * monthlyRate;
+    let payment = initialPayment;
+    let principal = payment - interest;
+    balance -= principal;
+
+    schedule.push({
+      month: 1,
+      payment: Number(payment.toFixed(2)),
+      interestPaid: Number(interest.toFixed(2)),
+      principalPaid: Number(principal.toFixed(2)),
+      remainingBalance: Number(balance.toFixed(2))
+    });
+
+    // Payments at minimumPayment
+    for (let month = 2; month <= desiredDuration; month++) {
+      interest = balance * monthlyRate;
+      payment = minimumPayment;
+      principal = payment - interest;
+
+      // Adjust final payment if necessary
+      if (month === desiredDuration) {
+        principal = balance;
+        payment = principal + interest;
+        balance = 0;
+      } else if (principal > balance) {
+        principal = balance;
+        payment = principal + interest;
+        balance = 0;
       } else {
-        return schedule; // Perfect match found
+        balance -= principal;
+      }
+
+      schedule.push({
+        month,
+        payment: Number(payment.toFixed(2)),
+        interestPaid: Number(interest.toFixed(2)),
+        principalPaid: Number(principal.toFixed(2)),
+        remainingBalance: Number(balance.toFixed(2))
+      });
+
+      if (balance <= 0) {
+        // Loan is paid off
+        return schedule;
       }
     }
-  
-    return bestSchedule || calculateSchedule(minimumPayment);
-  };
-  
-  const handleInputChange = (setter) => (e) => {
-    setter(Number(e.target.value));
+
+    return schedule;
   };
 
+  const handleInputChange = (setter) => (e) => {
+    const value = Number(e.target.value);
+    setter(value);
+  };
+
+  const handleCustomMaxPaymentInputChange = (e) => {
+    setCustomMaxPaymentInput(e.target.value);
+  };
+
+  const applyCustomMaxPayment = () => {
+    const value = Number(customMaxPaymentInput);
+    setCustomMaxPayment(isNaN(value) ? 0 : value);
+  };
 
   return (
     <div style={styles.container}>
       <div style={styles.card}>
         <h1 style={styles.title}>Loan Payment Optimizer</h1>
         <p style={styles.description}>
-          Minimize your interest payments by optimizing your loan repayment strategy. 
-          This calculator helps you find the best payment plan to reduce your total interest 
-          while maintaining manageable monthly payments.
+          Minimize your interest payments by optimizing your loan repayment
+          strategy. This calculator helps you find the best payment plan to
+          reduce your total interest while maintaining manageable monthly
+          payments.
         </p>
         <div style={styles.grid}>
           <div style={styles.inputGroup}>
-            <label style={styles.label} htmlFor="loanAmount">Loan Amount ($)</label>
+            <label style={styles.label} htmlFor="loanAmount">
+              Loan Amount ($)
+            </label>
             <input
               style={styles.input}
               id="loanAmount"
@@ -282,7 +533,9 @@ const styles = {
             />
           </div>
           <div style={styles.inputGroup}>
-            <label style={styles.label} htmlFor="interestRate">Interest Rate (%)</label>
+            <label style={styles.label} htmlFor="interestRate">
+              Interest Rate (%)
+            </label>
             <input
               style={styles.input}
               id="interestRate"
@@ -292,98 +545,177 @@ const styles = {
             />
           </div>
           <div style={styles.inputGroup}>
-            <label style={styles.label} htmlFor="minimumPayment">Minimum Payment ($)</label>
+            <label style={styles.label} htmlFor="originalLoanDuration">
+              Original Loan Duration (months)
+            </label>
             <input
               style={styles.input}
+              id="originalLoanDuration"
+              type="number"
+              value={originalLoanDuration}
+              onChange={handleInputChange(setOriginalLoanDuration)}
+            />
+          </div>
+          <div style={styles.inputGroup}>
+            <label style={styles.label} htmlFor="desiredLoanDuration">
+              Desired Loan Duration (months)
+            </label>
+            <input
+              style={styles.input}
+              id="desiredLoanDuration"
+              type="number"
+              value={desiredLoanDuration}
+              onChange={handleInputChange(setDesiredLoanDuration)}
+            />
+          </div>
+          <div style={styles.inputGroup}>
+            <label style={styles.label} htmlFor="minimumPayment">
+              Minimum Payment ($)
+            </label>
+            <input
+              style={{ ...styles.input, ...styles.readOnlyInput }}
               id="minimumPayment"
               type="number"
               value={minimumPayment}
-              onChange={handleInputChange(setMinimumPayment)}
+              readOnly
             />
+            <p style={styles.smallText}>
+              This is the minimum payment based on your original loan duration.
+            </p>
           </div>
           <div style={styles.inputGroup}>
-            <label style={styles.label} htmlFor="loanDuration">Loan Duration (months)</label>
+            <label style={styles.label} htmlFor="autoMinPayment">
+              AutoMin Payment ($)
+            </label>
             <input
-              style={styles.input}
-              id="loanDuration"
+              style={{ ...styles.input, ...styles.readOnlyInput }}
+              id="autoMinPayment"
               type="number"
-              value={loanDuration}
-              onChange={handleInputChange(setLoanDuration)}
+              value={autoMinPayment}
+              readOnly
             />
+            <p style={styles.smallText}>
+              This is the minimum payment required to pay off the loan in your desired loan duration.
+            </p>
           </div>
           <div style={styles.inputGroup}>
-            <label style={styles.label} htmlFor="autoMaxPayment">Suggested Max Payment ($)</label>
+            <label style={styles.label} htmlFor="autoMaxPayment">
+              AutoMax Payment ($)
+            </label>
             <input
-              style={{...styles.input, ...styles.readOnlyInput}}
+              style={{ ...styles.input, ...styles.readOnlyInput }}
               id="autoMaxPayment"
               type="number"
               value={autoMaxPayment}
               readOnly
             />
             <p style={styles.smallText}>
-              This is the optimal first payment to minimize interest while maintaining your desired loan duration.
+              This is the maximum initial payment to minimize interest while
+              keeping remaining payments at the minimum amount.
             </p>
           </div>
           <div style={styles.inputGroup}>
-            <label style={styles.label} htmlFor="customMaxPayment">Custom Max Payment ($) (Optional)</label>
-            <input
-              style={styles.input}
-              id="customMaxPayment"
-              type="number"
-              value={customMaxPayment}
-              onChange={handleInputChange(setCustomMaxPayment)}
-            />
+            <label style={styles.label} htmlFor="customMaxPaymentInput">
+              Custom Max Payment ($) (Optional)
+            </label>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <input
+                style={{ ...styles.input, marginRight: '8px' }}
+                id="customMaxPaymentInput"
+                type="number"
+                value={customMaxPaymentInput}
+                onChange={handleCustomMaxPaymentInputChange}
+              />
+              <button onClick={applyCustomMaxPayment}>Apply</button>
+            </div>
             <p style={styles.smallText}>
-              Enter a custom maximum payment if you can afford more than the suggested amount.
+              Enter a custom maximum payment if you can afford more than the
+              suggested amount. Click "Apply" to calculate.
             </p>
           </div>
         </div>
       </div>
 
-      <div style={styles.card}>
-        <h2 style={styles.subtitle}>Payment Schedule</h2>
-        <p style={styles.description}>
-          This chart and table show your projected payment schedule. The blue line represents 
-          your monthly payments, while the green line shows your remaining balance over time.
-        </p>
-        <div style={{ height: '400px', marginBottom: '20px' }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={paymentSchedule}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="payment" stroke="#3b82f6" name="Payment" />
-              <Line type="monotone" dataKey="remainingBalance" stroke="#10b981" name="Remaining Balance" />
-            </LineChart>
-          </ResponsiveContainer>
+      {errorMessage && (
+        <div style={styles.card}>
+          <p style={{ color: 'red' }}>{errorMessage}</p>
         </div>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>Month</th>
-                <th style={styles.th}>Payment</th>
-                <th style={styles.th}>Interest Paid</th>
-                <th style={styles.th}>Principal Paid</th>
-                <th style={styles.th}>Remaining Balance</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paymentSchedule.map((payment, index) => (
-                <tr key={index}>
-                  <td style={styles.td}>{payment.month}</td>
-                  <td style={styles.td}>${payment.payment.toFixed(2)}</td>
-                  <td style={styles.td}>${payment.interestPaid.toFixed(2)}</td>
-                  <td style={styles.td}>${payment.principalPaid.toFixed(2)}</td>
-                  <td style={styles.td}>${payment.remainingBalance.toFixed(2)}</td>
+      )}
+
+      {paymentSchedule.length > 0 && (
+        <div style={styles.card}>
+          <h2 style={styles.subtitle}>Payment Schedule</h2>
+          {customMaxPayment > 0 && customMaxPaymentMonths > 0 ? (
+            <p style={styles.description}>
+              Pay <strong>${customMaxPayment.toFixed(2)}</strong> for{' '}
+              <strong>{customMaxPaymentMonths}</strong> months, then pay{' '}
+              <strong>${adjustedMedianPayment.toFixed(2)}</strong> in month{' '}
+              <strong>{customMaxPaymentMonths + 1}</strong>, and then make the
+              minimum payments to pay off your loan in{' '}
+              <strong>{desiredLoanDuration}</strong> months.
+            </p>
+          ) : (
+            <p style={styles.description}>
+              Pay <strong>${autoMaxPayment.toFixed(2)}</strong> in the first
+              month, then make the minimum payment to pay off your loan in{' '}
+              <strong>{desiredLoanDuration}</strong> months.
+            </p>
+          )}
+          <div style={{ height: '400px', marginBottom: '20px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={paymentSchedule}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="payment"
+                  stroke="#3b82f6"
+                  name="Payment"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="remainingBalance"
+                  stroke="#10b981"
+                  name="Remaining Balance"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={styles.th}>Month</th>
+                  <th style={styles.th}>Payment</th>
+                  <th style={styles.th}>Interest Paid</th>
+                  <th style={styles.th}>Principal Paid</th>
+                  <th style={styles.th}>Remaining Balance</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {paymentSchedule.map((payment, index) => (
+                  <tr key={index}>
+                    <td style={styles.td}>{payment.month}</td>
+                    <td style={styles.td}>${payment.payment.toFixed(2)}</td>
+                    <td style={styles.td}>
+                      ${payment.interestPaid.toFixed(2)}
+                    </td>
+                    <td style={styles.td}>
+                      ${payment.principalPaid.toFixed(2)}
+                    </td>
+                    <td style={styles.td}>
+                      ${payment.remainingBalance.toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
